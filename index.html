@@ -1,303 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Dirt Bike Tire Finder</title>
-    <style>
-        :root { --primary: #d32f2f; --secondary: #1a1a1a; --text: #333; --bg: #f4f4f4; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; line-height: 1.5; }
-        .container { max-width: 1100px; margin: auto; }
-        header { background: var(--secondary); color: white; padding: 40px 20px; border-radius: 12px; text-align: center; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        h1 { margin: 0; font-size: 2.5rem; text-transform: uppercase; letter-spacing: 2px; }
-        
-        .filter-box { background: white; padding: 25px; border-radius: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; box-shadow: 0 2px 15px rgba(0,0,0,0.05); margin-bottom: 30px; position: sticky; top: 10px; z-index: 1000; border-top: 5px solid var(--primary); }
-        .filter-group label { display: block; font-weight: bold; margin-bottom: 8px; color: #555; font-size: 0.9rem; }
-        select, input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; background: #fafafa; transition: 0.3s; }
-        select:focus, input:focus { border-color: var(--primary); outline: none; background: #fff; }
-
-        .results-meta { font-weight: bold; margin-bottom: 15px; color: #666; font-size: 1.1rem; padding-left: 5px; }
-        .tire-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
-        
-        .tire-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-bottom: 4px solid #eee; transition: 0.3s; display: flex; flex-direction: column; }
-        .tire-card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
-        .brand-name { color: var(--primary); font-weight: 800; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px; }
-        .model-name { font-size: 1.4rem; font-weight: bold; margin-bottom: 10px; color: var(--secondary); }
-        .badges { margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 5px; }
-        .badge { padding: 4px 10px; border-radius: 5px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
-        .badge-pos { background: #333; color: white; }
-        .badge-ride { background: #e3f2fd; color: #1976d2; }
-        .badge-terr { background: #f1f8e9; color: #388e3c; }
-        .description { font-size: 0.95rem; color: #555; border-top: 1px solid #eee; pt: 10px; margin-top: auto; padding-top: 10px; }
-        
-        .update-tag { background: #fff3e0; color: #e65100; border: 1px solid #ffb74d; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 8px; vertical-align: middle; }
-
-        @media (max-width: 600px) { h1 { font-size: 1.8rem; } .filter-box { grid-template-columns: 1fr; } }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <header>
-        <h1>Dirt Bike Tire Finder</h1>
-        <p>Search Tires Across All Major Brands</p>
-    </header>
-
-    <div class="filter-box">
-        <div class="filter-group">
-            <label>Riding Type</label>
-            <select id="rideType" onchange="filterData()">
-                <option value="all">All Riding Styles</option>
-                <option value="Motocross">Motocross</option>
-                <option value="Enduro">Enduro</option>
-                <option value="Hard Enduro">Hard Enduro</option>
-                <option value="Dual-Sport">Dual-Sport</option>
-                <option value="Trail">Trail Riding</option>
-                <option value="Desert">Desert Racing</option>
-                <option value="Adventure">Adventure</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label>Terrain</label>
-            <select id="terrainType" onchange="filterData()">
-                <option value="all">All Terrains</option>
-                <option value="Soft">Soft / Sand / Mud</option>
-                <option value="Intermediate">Intermediate / Mixed</option>
-                <option value="Hard">Hard / Rocky</option>
-                <option value="Technical">Technical / Extreme</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label>Search Models</label>
-            <input type="text" id="searchText" onkeyup="filterData()" placeholder="e.g. Dunlop MX34...">
-        </div>
-    </div>
-
-    <div id="resultCount" class="results-meta"></div>
-    <div id="tireGrid" class="tire-grid"></div>
+<div id="recommendationSection" style="display:none; margin-bottom: 40px;">
+    <h2 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px;">Top 3 Recommendations</h2>
+    <div id="topPicks" class="tire-grid"></div>
 </div>
 
+<div id="resultCount" class="results-meta"></div>
+<div id="tireGrid" class="tire-grid"></div>
+
 <script>
-
-const tires = [
-    { b: "Dunlop", m: "Geomax MX14", p: "Front", r: "Motocross", t: "Soft", d: "2026 Update: Advanced sand/mud tire with 18% taller blocks.", u: true },
-    { b: "Dunlop", m: "Geomax MX14", p: "Rear", r: "Motocross", t: "Soft", d: "2026 Update: Enhanced scoop design for hole-shot traction.", u: true },
-    { b: "Dunlop", m: "Geomax MX34", p: "Front", r: "Motocross", t: "Intermediate", d: "2026 Update: Replaces MX33; new carcass design.", u: true },
-    { b: "Dunlop", m: "Geomax MX34", p: "Rear", r: "Motocross", t: "Intermediate", d: "2026 Update: PCBT (Block-in-Block) tech.", u: true },
-    { b: "Dunlop", m: "Geomax MX12", p: "Front", r: "Motocross", t: "Soft", d: "Motocross/sand & mud terrain tire." },
-    { b: "Dunlop", m: "Geomax MX12", p: "Rear", r: "Motocross", t: "Soft", d: "Motocross/sand & mud terrain tire." },
-    { b: "Dunlop", m: "Geomax MX33", p: "Front", r: "Motocross", t: "Intermediate", d: "Soft-to-intermediate terrain motocross tire." },
-    { b: "Dunlop", m: "Geomax MX33", p: "Rear", r: "Motocross", t: "Intermediate", d: "Soft-to-intermediate terrain motocross tire." },
-    { b: "Dunlop", m: "Geomax MX53", p: "Front", r: "Motocross", t: "Hard", d: "Intermediate-to-hard terrain motocross tire." },
-    { b: "Dunlop", m: "Geomax MX53", p: "Rear", r: "Motocross", t: "Hard", d: "Intermediate-to-hard terrain motocross tire." },
-    { b: "Dunlop", m: "Geomax MX71", p: "Front", r: "Motocross", t: "Hard", d: "Hard terrain motocross tire." },
-    { b: "Dunlop", m: "Geomax MX71", p: "Rear", r: "Motocross", t: "Hard", d: "Hard terrain motocross tire." },
-    { b: "Dunlop", m: "Geomax AT81", p: "Front", r: "Enduro", t: "Intermediate", d: "Enduro/cross-country off-road tire." },
-    { b: "Dunlop", m: "Geomax AT81", p: "Rear", r: "Enduro", t: "Intermediate", d: "Enduro/cross-country off-road tire." },
-    { b: "Dunlop", m: "Geomax AT81 EX", p: "Front", r: "Hard Enduro", t: "Technical", d: "Enhanced gummy enduro tire for extreme conditions." },
-    { b: "Dunlop", m: "Geomax AT81 EX", p: "Rear", r: "Hard Enduro", t: "Technical", d: "Enhanced gummy enduro tire for extreme conditions." },
-    { b: "Dunlop", m: "Geomax AT82", p: "Front", r: "Enduro", t: "Intermediate", d: "2026 Update: Multi-directional tread versatility.", u: true },
-    { b: "Dunlop", m: "Geomax AT82", p: "Rear", r: "Enduro", t: "Intermediate", d: "2026 Update: Higher block height for drive.", u: true },
-    { b: "Dunlop", m: "Geomax EN91", p: "Front", r: "Enduro", t: "Intermediate", d: "Enduro off-road tire for varied terrain." },
-    { b: "Dunlop", m: "Geomax EN91", p: "Rear", r: "Enduro", t: "Intermediate", d: "Enduro off-road tire for varied terrain." },
-    { b: "Dunlop", m: "Geomax EN91 EX", p: "Rear", r: "Hard Enduro", t: "Technical", d: "Hard enduro-focused version of EN91." },
-    { b: "Dunlop", m: "D952", p: "Front", r: "Trail", t: "Intermediate", d: "Value-priced off-road leisure tire." },
-    { b: "Dunlop", m: "D952", p: "Rear", r: "Trail", t: "Intermediate", d: "Value-priced off-road leisure tire." },
-    { b: "Dunlop", m: "D803GP", p: "Front", r: "Hard Enduro", t: "Technical", d: "Trial discipline tire for technical off-road." },
-    { b: "Dunlop", m: "D803GP", p: "Rear", r: "Hard Enduro", t: "Technical", d: "Trial discipline tire for technical off-road." },
-    { b: "Dunlop", m: "D908RR", p: "Front", r: "Desert", t: "Hard", d: "Rally raid / dual-sport-capable tire." },
-    { b: "Dunlop", m: "D908RR", p: "Rear", r: "Desert", t: "Hard", d: "Rally raid / dual-sport-capable tire." },
-    { b: "Dunlop", m: "Geomax TL01", p: "Front", r: "Hard Enduro", t: "Technical", d: "Trials-focused tire within Geomax lineup." },
-    { b: "Dunlop", m: "Geomax TL01", p: "Rear", r: "Hard Enduro", t: "Technical", d: "Trials-focused tire within Geomax lineup." },
-    { b: "Michelin", m: "Starcross 6 All", p: "Front", r: "Motocross", t: "Standard", d: "2026 Standard: Silica technology keeps grip consistent as knobs wear.", u: true },
-    { b: "Michelin", m: "Starcross 6 All", p: "Rear", r: "Motocross", t: "Standard", d: "2026 Standard: Improved durability over the Starcross 5 series.", u: true },
-    { b: "Michelin", m: "Starcross 6 MS", p: "Front", r: "Motocross", t: "Soft/Intermediate", d: "Motocross tire for soft and intermediate terrain." },
-    { b: "Michelin", m: "Starcross 6 MS", p: "Rear", r: "Motocross", t: "Soft/Intermediate", d: "Motocross tire for soft and intermediate terrain." },
-    { b: "Michelin", m: "Starcross 6 MH", p: "Front", r: "Motocross", t: "Intermediate/Hard", d: "Motocross tire for intermediate/hard surfaces." },
-    { b: "Michelin", m: "Starcross 6 MH", p: "Rear", r: "Motocross", t: "Intermediate/Hard", d: "Motocross tire for intermediate/hard surfaces." },
-    { b: "Michelin", m: "Starcross 6 Hard", p: "Front", r: "Motocross", t: "Hard", d: "Optimized for hard, packed soil." },
-    { b: "Michelin", m: "Starcross 6 Hard", p: "Rear", r: "Motocross", t: "Hard", d: "Optimized for hard, packed soil." },
-    { b: "Michelin", m: "Starcross 6 Sand", p: "Front", r: "Motocross", t: "Sand", d: "Designed for sandy terrain traction." },
-    { b: "Michelin", m: "Starcross 6 Sand", p: "Rear", r: "Motocross", t: "Sand", d: "Designed for sandy terrain traction." },
-    { b: "Michelin", m: "Starcross 6 Mud", p: "Rear", r: "Motocross", t: "Mud", d: "Motocross rear tire focused on mud performance." },
-    { b: "Bridgestone", m: "Battlecross X31", p: "Front", r: "Motocross", t: "Standard", d: "2026 Standard: Replaces X30; adds Bunker Grooves for flex.", u: true },
-    { b: "Bridgestone", m: "Battlecross X31", p: "Rear", r: "Motocross", t: "Standard", d: "2026 Standard: Improved cooling fin technology for longevity.", u: true },
-    { b: "Bridgestone", m: "Battlecross X10", p: "Front", r: "Motocross", t: "Soft/Mud/Sand", d: "Sand/mud terrain motocross tire." },
-    { b: "Bridgestone", m: "Battlecross X10", p: "Rear", r: "Motocross", t: "Soft/Mud/Sand", d: "Sand/mud terrain motocross tire." },
-    { b: "Bridgestone", m: "Battlecross X20", p: "Front", r: "Motocross", t: "Soft/Intermediate", d: "Soft-intermediate MX tire with Castle Block tech." },
-    { b: "Bridgestone", m: "Battlecross X20", p: "Rear", r: "Motocross", t: "Soft/Intermediate", d: "Soft-intermediate MX tire with Castle Block tech." },
-    { b: "Bridgestone", m: "Battlecross X30", p: "Front", r: "Motocross", t: "Intermediate", d: "Intermediate terrain motocross tire." },
-    { b: "Bridgestone", m: "Battlecross X30", p: "Rear", r: "Motocross", t: "Intermediate", d: "Intermediate terrain motocross tire." },
-    { b: "Bridgestone", m: "Battlecross X40", p: "Front", r: "Motocross", t: "Hard", d: "Hard terrain motocross tire." },
-    { b: "Bridgestone", m: "Battlecross X40", p: "Rear", r: "Motocross", t: "Hard", d: "Hard terrain motocross tire." },
-    { b: "Bridgestone", m: "Battlecross E50", p: "Front", r: "Enduro", t: "Intermediate/Hard", d: "Enduro tire for varied surfaces (soft to hard)." },
-    { b: "Bridgestone", m: "Battlecross E50", p: "Rear", r: "Enduro", t: "Intermediate/Hard", d: "Enduro tire for varied surfaces (soft to hard)." },
-    { b: "Bridgestone", m: "M403", p: "Front", r: "Motocross", t: "Intermediate", d: "Classic intermediate terrain front MX tire." },
-    { b: "Bridgestone", m: "M404", p: "Rear", r: "Motocross", t: "Intermediate", d: "Classic intermediate terrain rear MX tire." },
-    { b: "Bridgestone", m: "M59", p: "Front", r: "Trail", t: "Soft/Intermediate", d: "Soft-to-intermediate trail tire." },
-    { b: "Bridgestone", m: "M59", p: "Rear", r: "Trail", t: "Soft/Intermediate", d: "Soft-to-intermediate trail tire." },
-    { b: "Bridgestone", m: "M23", p: "Front", r: "Trail", t: "Hardpack", d: "Hardpack tire for blue groove conditions." },
-    { b: "Bridgestone", m: "M22", p: "Rear", r: "Trail", t: "Hardpack", d: "Hardpack tire for blue groove conditions." },
-    { b: "Bridgestone", m: "M40", p: "Front", r: "Youth/Motocross", t: "Soft", d: "Smaller soft MX tire for youth bikes." },
-    { b: "Bridgestone", m: "M40", p: "Rear", r: "Youth/Motocross", t: "Soft", d: "Smaller soft MX tire for youth bikes." },
-    { b: "Pirelli", m: "Scorpion MX Soft", p: "Rear", r: "Motocross", t: "Soft/Mud/Sand", d: "Pure-bred competition tire for mud and sand." },
-    { b: "Pirelli", m: "MX32 Mid Soft", p: "Front", r: "Motocross", t: "Soft/Intermediate", d: "Optimized for soft to medium-soft terrain." },
-    { b: "Pirelli", m: "MX32 Mid Soft", p: "Rear", r: "Motocross", t: "Soft/Intermediate", d: "Optimized for soft to medium-soft terrain." },
-    { b: "Pirelli", m: "MX32 Mid Hard", p: "Front", r: "Motocross", t: "Intermediate/Hard", d: "Ideal for medium to hard terrain conditions." },
-    { b: "Pirelli", m: "MX32 Mid Hard", p: "Rear", r: "Motocross", t: "Intermediate/Hard", d: "Ideal for medium to hard terrain conditions." },
-    { b: "Pirelli", m: "MX Extra X", p: "Front", r: "Motocross", t: "Training", d: "Training tire with balanced performance." },
-    { b: "Pirelli", m: "MX Extra X", p: "Rear", r: "Motocross", t: "Training", d: "Training tire with balanced performance." },
-    { b: "Pirelli", m: "XC Mid Hard", p: "Front", r: "Enduro", t: "Intermediate/Hard", d: "Off-road/dual-purpose for mixed terrain." },
-    { b: "Pirelli", m: "XC Mid Hard", p: "Rear", r: "Enduro", t: "Intermediate/Hard", d: "Off-road/dual-purpose for mixed terrain." },
-    { b: "Maxxis", m: "Maxxcross MX-SI", p: "Front", r: "Motocross", t: "Soft/Intermediate", d: "2026 Addition: New tread pattern for soft-intermediate Pro MX.", u: true },
-    { b: "Maxxis", m: "Maxxcross MX-SI", p: "Rear", r: "Motocross", t: "Soft/Intermediate", d: "2026 Addition: Improved stability and predictability under load.", u: true },
-    { b: "Maxxis", m: "Maxxcross SM", p: "Front", r: "Motocross", t: "Soft", d: "Soft terrain motocross tire with mud focus." },
-    { b: "Maxxis", m: "Maxxcross SM", p: "Rear", r: "Motocross", t: "Soft", d: "Soft terrain motocross tire with sand focus." },
-    { b: "Maxxis", m: "Maxxcross IT", p: "Front", r: "Motocross", t: "Intermediate", d: "Long-lasting intermediate terrain off-road tire." },
-    { b: "Maxxis", m: "Maxxcross IT", p: "Rear", r: "Motocross", t: "Intermediate", d: "Long-lasting intermediate terrain off-road tire." },
-    { b: "Maxxis", m: "Desert IT", p: "Front", r: "Enduro", t: "Hard/Desert", d: "Built for rocky, sandy desert conditions." },
-    { b: "Maxxis", m: "Desert IT", p: "Rear", r: "Enduro", t: "Hard/Desert", d: "Built for rocky, sandy desert conditions." },
-    { b: "Maxxis", m: "MX-IH", p: "Front", r: "Motocross", t: "Intermediate/Hard", d: "Intermediate-to-hard motocross tire." },
-    { b: "Maxxis", m: "MX-IH", p: "Rear", r: "Motocross", t: "Intermediate/Hard", d: "Intermediate-to-hard motocross tire." },
-    { b: "Maxxis", m: "MX-ST", p: "Front", r: "Motocross", t: "Soft/Intermediate", d: "Race-oriented for soft/intermediate conditions." },
-    { b: "Maxxis", m: "MX-ST", p: "Rear", r: "Motocross", t: "Soft/Intermediate", d: "Race-oriented for soft/intermediate conditions." },
-    { b: "Maxxis", m: "Dual SX", p: "Front", r: "Motocross", t: "Hard", d: "Dual-compound for hard-packed tracks." },
-    { b: "Maxxis", m: "Dual SX", p: "Rear", r: "Motocross", t: "Hard", d: "Dual-compound for hard-packed tracks." },
-    { b: "Maxxis", m: "Maxxcross EN", p: "Front", r: "Enduro", t: "Intermediate/Soft", d: "Endurocross tire with mud-shedding lugs." },
-    { b: "Maxxis", m: "Maxxcross EN", p: "Rear", r: "Enduro", t: "Intermediate/Soft", d: "Endurocross tire with mud-shedding lugs." },
-    { b: "Kenda", m: "Washougal III", p: "Front", r: "Motocross", t: "Intermediate", d: "2026 Addition: Dual-compound for sharp cornering & durability.", u: true },
-    { b: "Kenda", m: "Washougal III", p: "Rear", r: "Motocross", t: "Intermediate", d: "2026 Addition: Reinforced knobs for stability on throttle/brake.", u: true },
-    { b: "Kenda", m: "Millville II", p: "Front", r: "Motocross", t: "Soft/Intermediate", d: "Soft/intermediate terrain motocross tire." },
-    { b: "Kenda", m: "Millville II", p: "Rear", r: "Motocross", t: "Soft/Intermediate", d: "Soft/intermediate terrain motocross tire." },
-    { b: "Kenda", m: "K781 Triple", p: "Front", r: "Hard Enduro", t: "Technical/Hard", d: "Technical hard terrain tire with sticky compound." },
-    { b: "Kenda", m: "K781 Triple", p: "Rear", r: "Hard Enduro", t: "Technical/Hard", d: "Technical hard terrain tire with sticky compound." },
-    { b: "Shinko", m: "216 MX Fatty", p: "Front", d: "New Addition: Oversized 90/100-21 for bump absorption." },
-    { b: "Shinko", m: "216 MX", p: "Front", d: "DOT off-road tire for rocks/roots." },
-    { b: "Shinko", m: "216 MX", p: "Rear", d: "DOT off-road tire for rocks/roots." },
-    { b: "Shinko", m: "216 Cheater", p: "Front", d: "Gummy compound for technical off-road." },
-    { b: "Shinko", m: "216 Cheater", p: "Rear", d: "Gummy compound for technical off-road." },
-    { b: "Shinko", m: "546 Series", p: "Front", d: "Soft-to-intermediate widely spaced knobs." },
-    { b: "Shinko", m: "546 Series", p: "Rear", d: "Soft-to-intermediate widely spaced knobs." },
-    { b: "Shinko", m: "540 Series", p: "Rear", d: "Extreme soft terrain mud/sand tire." },
-    { b: "Shinko", m: "520 Series", p: "Front", d: "Balanced tread for intermediate/hard dirt." },
-    { b: "Shinko", m: "520 Series", p: "Rear", d: "Balanced tread for intermediate/hard dirt." },
-    { b: "Shinko", m: "523 Series", p: "Front", d: "Reinforced knobs for hard terrain longevity." },
-    { b: "Shinko", m: "523 Series", p: "Rear", d: "Reinforced knobs for hard terrain longevity." },
-    { b: "Shinko", m: "505S Hybrid", p: "Front", d: "Hybrid gummy for rocks and roots." },
-    { b: "Shinko", m: "505S Hybrid", p: "Rear", d: "Hybrid gummy for rocks and roots." },
-    { b: "Shinko", m: "525 Hybrid", p: "Rear", d: "Soft/sticky compound for extreme trail riding." },
-    { b: "Shinko", m: "244 Series", p: "Front", d: "Dual-purpose street/trail tire." },
-    { b: "Shinko", m: "244 Series", p: "Rear", d: "Dual-purpose street/trail tire." },
-    { b: "Shinko", m: "700 Series", p: "Front", d: "60/40 road-to-dirt aggressive dual-sport." },
-    { b: "Shinko", m: "700 Series", p: "Rear", d: "60/40 road-to-dirt aggressive dual-sport." },
-    { b: "Shinko", m: "SR241", p: "Front", d: "Trials-style raised knobs for light off-road." },
-    { b: "Shinko", m: "SR241", p: "Rear", d: "Trials-style raised knobs for light off-road." },
-    { b: "IRC", m: "M5B EVO", p: "Rear", d: "2026 Addition: Massive 15mm lugs for soft soil/hill climbs." },
-    { b: "IRC", m: "VE-33S Gekkota", p: "Rear", d: "2026 Addition: Hybrid Gummy for hard enduro/rocks." },
-    { b: "IRC", m: "JX8 Gekkota", p: "Rear", d: "Extreme enduro rear with gummy compound." },
-    { b: "IRC", m: "IX-09", p: "Front", d: "Soft terrain enduro/motocross tire." },
-    { b: "IRC", m: "IX-09", p: "Rear", d: "Soft terrain enduro/motocross tire." },
-    { b: "IRC", m: "IX-05H", p: "Front", d: "Intermediate-hard terrain motocross front." },
-    { b: "IRC", m: "IX-05H", p: "Rear", d: "Intermediate-hard terrain motocross rear." },
-    { b: "IRC", m: "IX-07S", p: "Front", d: "Soft terrain motocross front traction." },
-    { b: "IRC", m: "IX-07S", p: "Rear", d: "Soft terrain motocross rear traction." },
-    { b: "IRC", m: "VE33", p: "Front", d: "All-purpose enduro for mixed terrain." },
-    { b: "IRC", m: "VE33", p: "Rear", d: "All-purpose enduro for mixed terrain." },
-    { b: "IRC", m: "TR-1", p: "Front", d: "Trials/off-road dual-purpose." },
-    { b: "IRC", m: "TR-1", p: "Rear", d: "Trials/off-road dual-purpose." },
-    { b: "IRC", m: "GS-45F", p: "Front", d: "Intermediate motocross/off-road front." },
-    { b: "IRC", m: "GS-45F", p: "Rear", d: "Intermediate motocross/off-road rear." },
-    { b: "IRC", m: "VX-10", p: "Front", d: "Mini motocross tire for youth/pit bikes." },
-    { b: "IRC", m: "VX-10", p: "Rear", d: "Mini motocross tire for youth/pit bikes." },
-    { b: "Sedona", m: "MX880ST", p: "Front", d: "Open cross-block for sand and mud." },
-    { b: "Sedona", m: "MX880ST", p: "Rear", d: "Open cross-block for sand and mud." },
-    { b: "Sedona", m: "MX887IT", p: "Front", d: "Hard-intermediate with reversible tread." },
-    { b: "Sedona", m: "MX887IT", p: "Rear", d: "Hard-intermediate with reversible tread." },
-    { b: "Sedona", m: "MX907HP", p: "Front", d: "Cross-patch tread for hard-pack stability." },
-    { b: "Sedona", m: "MX907HP", p: "Rear", d: "Cross-patch tread for hard-pack stability." },
-    { b: "Sedona", m: "MX-208SR", p: "Front", d: "Tall lugs with dual rubber compounds." },
-    { b: "Sedona", m: "MX-208SR", p: "Rear", d: "Tall lugs with dual rubber compounds." },
-    { b: "Mitas", m: "Terra Force MX", p: "Front", d: "2026 Update: New SM (Soft-Mid) and MH (Mid-Hard) variants." },
-    { b: "Mitas", m: "Terra Force MX", p: "Rear", d: "2026 Update: Competition-focused carcass for 2026 Pro racing." },
-    { b: "Mitas", m: "TF-EX EF", p: "Rear", d: "Short-knob pattern for technical terrain." },
-    { b: "Mitas", m: "TF-EX MH", p: "Rear", d: "Enduro rear for medium-hard terrain." },
-    { b: "Mitas", m: "TF-EX XT", p: "Rear", d: "Designed for deep mud, roots, and rocks." },
-    { b: "Mitas", m: "Enduro Hybrid", p: "Rear", d: "Combined trials footprint with off-road traction." },
-    { b: "Mitas", m: "C-19", p: "Front", d: "Enduro front for extreme technical terrain." },
-    { b: "Mitas", m: "Trail-Rally", p: "Front", d: "Aggressive adventure front for rally terrain." },
-    { b: "Mitas", m: "Trail-Rally", p: "Rear", d: "Aggressive adventure rear for rally terrain." },
-    { b: "Mitas", m: "Trail-XT+", p: "Front", d: "Off-road biased dual-sport front." },
-    { b: "Mitas", m: "Trail-XT+", p: "Rear", d: "Off-road biased dual-sport rear." },
-    { b: "Motoz", m: "Enduro S/T", p: "Front", d: "Hybrid compound for mud and loam." },
-    { b: "Motoz", m: "Enduro S/T", p: "Rear", d: "Hybrid compound for mud and loam." },
-    { b: "Motoz", m: "Enduro I/T", p: "Front", d: "Heavy-duty for varied intermediate terrain." },
-    { b: "Motoz", m: "Enduro I/T", p: "Rear", d: "Heavy-duty for varied intermediate terrain." },
-    { b: "Motoz", m: "Desert H/T", p: "Rear", d: "Reinforced casing for long desert wear." },
-    { b: "Motoz", m: "RallZ", p: "Front", d: "Aggressive adventure tire for mixed terrain." },
-    { b: "Motoz", m: "RallZ", p: "Rear", d: "Aggressive adventure tire for mixed terrain." },
-    { b: "Motoz", m: "Mountain Hybrid", p: "Front", d: "Blends trials grip with off-road handling." },
-    { b: "Motoz", m: "Mountain Hybrid", p: "Rear", d: "Blends trials grip with off-road handling." },
-    { b: "Motoz", m: "Xtreme Hybrid", p: "Front", d: "Trials-inspired tread for technical terrain." },
-    { b: "Motoz", m: "Xtreme Hybrid", p: "Rear", d: "Trials-inspired tread for technical terrain." },
-    { b: "Motoz", m: "Enduro Hybrid", p: "Rear", d: "Trials-like traction with off-road stability." },
-    { b: "Tusk", m: "EMEX T-35", p: "Front", d: "Deep, aggressive tread for soft/inter terrain." },
-    { b: "Tusk", m: "EMEX T-35", p: "Rear", d: "Reinforced side knobs for soft/inter terrain." },
-    { b: "Tusk", m: "EMEX T-45", p: "Front", d: "Deep center lugs for intermediate/hard terrain." },
-    { b: "Tusk", m: "EMEX T-45", p: "Rear", d: "Reinforced side knobs for intermediate/hard terrain." },
-    { b: "Tusk", m: "Recon Hybrid", p: "Front", d: "Trials grip with MX-style carcass/tread." },
-    { b: "Tusk", m: "Recon Hybrid", p: "Rear", d: "Gummy compound for impact absorption." },
-    { b: "AMS", m: "Bite MX", p: "Front", d: "Aggressive knobs for intermediate to hard." },
-    { b: "AMS", m: "Bite MX", p: "Rear", d: "Aggressive knobs for intermediate to hard." },
-    { b: "AMS", m: "Bite MX Mini", p: "Front", d: "Youth pit bike off-road tread." },
-    { b: "AMS", m: "Sand Snake", p: "Rear", d: "Sand-specific paddle tire with aggressive lugs." },
-    { b: "Rinaldi", m: "RMX35", p: "Front", d: "Intermediate to hard terrain off-road tire." },
-    { b: "Rinaldi", m: "RMX35", p: "Rear", d: "Intermediate to hard terrain off-road tire." },
-    { b: "Rinaldi", m: "RS47", p: "Front", d: "Soft/intermediate motocross knobby." },
-    { b: "Rinaldi", m: "RS47", p: "Rear", d: "Soft/intermediate motocross knobby." },
-    { b: "Rinaldi", m: "HE40", p: "Front", d: "Competition-use enduro front tire." },
-    { b: "Rinaldi", m: "RW45", p: "Rear", d: "Scoop-style tread for sand and mud." },
-    { b: "Rinaldi", m: "SR39", p: "Front", d: "Balanced grip for intermediate terrain." },
-    { b: "Rinaldi", m: "SR39", p: "Rear", d: "Balanced grip for intermediate terrain." },
-    { b: "Rinaldi", m: "SR Hard", p: "Rear", d: "Durable compound for hard-terrain focus." },
-    { b: "Metzeler", m: "6 Days Extreme", p: "Front", d: "High-performance enduro competition tire." },
-    { b: "Metzeler", m: "6 Days Extreme", p: "Rear", d: "High-performance enduro competition tire." },
-    { b: "Metzeler", m: "MC360 MS", p: "Front", d: "Optimized for soft and mid-soft handling." },
-    { b: "Metzeler", m: "MC360 MS", p: "Rear", d: "Optimized for soft and mid-soft traction." },
-    { b: "Metzeler", m: "MC360 MH", p: "Front", d: "Tuned for medium/hard terrain durability." },
-    { b: "Metzeler", m: "MC360 MH", p: "Rear", d: "Tuned for medium/hard terrain durability." },
-    { b: "Metzeler", m: "Karoo 4", p: "Front", d: "Rally-level dirt grip with road stability." },
-    { b: "Metzeler", m: "Karoo 4", p: "Rear", d: "Rally-level dirt grip with road stability." },
-    { b: "Metzeler", m: "Karoo Street", p: "Front", d: "Balanced dual-sport on/off road performance." },
-    { b: "Metzeler", m: "Karoo Street", p: "Rear", d: "Balanced dual-sport on/off road performance." },
-    { b: "Metzeler", m: "Enduro 3", p: "Front", d: "Self-cleaning knobs for mixed terrain." },
-    { b: "Metzeler", m: "Enduro 3", p: "Rear", d: "Self-cleaning knobs for mixed terrain." },
-    { b: "Plews", m: "MX1 Hawkstone", p: "Rear", d: "Soft/sand/mud tyre for deep terrain." },
-    { b: "Plews", m: "MX2 Matterly", p: "Front", d: "Balanced intermediate terrain grip." },
-    { b: "Plews", m: "MX2 Matterly", p: "Rear", d: "Balanced intermediate terrain drive." },
-    { b: "Plews", m: "MX3 Foxhills", p: "Front", d: "Asymmetric tread for hard-pack stability." },
-    { b: "Plews", m: "MX3 Foxhills", p: "Rear", d: "Asymmetric tread for hard-pack traction." },
-    { b: "Plews", m: "EN1 Grand Prix", p: "Front", d: "General enduro/off-road tyre." },
-    { b: "Plews", m: "EN1 Grand Prix", p: "Rear", d: "Standard compound for varied surfaces." },
-    { b: "Plews", m: "EN1 Tough One", p: "Rear", d: "Gummy tyre for extreme conditions." },
-    { b: "Plews", m: "EN1 Spec B", p: "Rear", d: "2026 Addition: World-first 15mm FIM race pattern gummy." },
-    { b: "Plews", m: "Monster Hybrid", p: "Rear", d: "Blends hardpack and soft soil performance." },
-    { b: "Plews", m: "Big Boy", p: "Rear", d: "Adventure/off-road for long-distance touring." }
-
-
-
-
-   
-]
-
-];
+// (Keep your 'const tires = [...]' list here - just ensure the very end of the list is clean)
 
 function filterData() {
     const ride = document.getElementById('rideType').value;
     const terrain = document.getElementById('terrainType').value;
     const search = document.getElementById('searchText').value.toLowerCase();
+    
     const grid = document.getElementById('tireGrid');
+    const topPicksGrid = document.getElementById('topPicks');
+    const recSection = document.getElementById('recommendationSection');
     const count = document.getElementById('resultCount');
 
+    // 1. Filter the full list
     const filtered = tires.filter(t => {
         const matchRide = ride === 'all' || t.r === ride;
         const matchTerr = terrain === 'all' || t.t === terrain;
@@ -305,25 +27,41 @@ function filterData() {
         return matchRide && matchTerr && matchSearch;
     });
 
-    count.innerText = `${filtered.length} Results Found`;
+    // 2. Logic for Recommendation Section
+    // Only show "Top Picks" if the user has actually selected a specific style or terrain
+    if ((ride !== 'all' || terrain !== 'all') && filtered.length > 0) {
+        recSection.style.display = 'block';
+        const top3 = filtered.slice(0, 3);
+        topPicksGrid.innerHTML = top3.map(t => createCardHTML(t, true)).join('');
+    } else {
+        recSection.style.display = 'none';
+    }
 
-    grid.innerHTML = filtered.map(t => `
-        <div class="tire-card">
-            <div class="brand-name">${t.b} ${t.u ? '<span class="update-tag">NEW 2026</span>' : ''}</div>
+    // 3. Show the rest of the results
+    count.innerText = `${filtered.length} Total Models Found`;
+    grid.innerHTML = filtered.map(t => createCardHTML(t, false)).join('');
+}
+
+// Helper function to build the card so we don't repeat code
+function createCardHTML(t, isRecommended) {
+    const borderStyle = isRecommended ? 'border: 2px solid var(--primary);' : '';
+    return `
+        <div class="tire-card" style="${borderStyle}">
+            <div class="brand-name">
+                ${t.b} ${t.u ? '<span class="update-tag">NEW 2026</span>' : ''}
+                ${isRecommended ? '<span style="background:var(--primary); color:white; padding:2px 6px; border-radius:4px; font-size:0.7rem; margin-left:5px;">BEST MATCH</span>' : ''}
+            </div>
             <div class="model-name">${t.m}</div>
             <div class="badges">
                 <span class="badge badge-pos">${t.p}</span>
-                <span class="badge badge-ride">${t.r}</span>
-                <span class="badge badge-terr">${t.t}</span>
+                <span class="badge badge-ride">${t.r || 'Off-Road'}</span>
+                <span class="badge badge-terr">${t.t || 'Mixed'}</span>
             </div>
             <div class="description">${t.d}</div>
         </div>
-    `).join('');
+    `;
 }
 
 // Initial Run
 filterData();
 </script>
-
-</body>
-</html>
