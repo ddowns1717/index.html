@@ -1,13 +1,96 @@
-<div id="recommendationSection" style="display:none; margin-bottom: 40px;">
-    <h2 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px;">Top 3 Recommendations</h2>
-    <div id="topPicks" class="tire-grid"></div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Dirt Bike Tire Finder</title>
+    <style>
+        :root { --primary: #d32f2f; --secondary: #1a1a1a; --text: #333; --bg: #f4f4f4; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; line-height: 1.5; }
+        .container { max-width: 1100px; margin: auto; }
+        header { background: var(--secondary); color: white; padding: 40px 20px; border-radius: 12px; text-align: center; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        h1 { margin: 0; font-size: 2.5rem; text-transform: uppercase; letter-spacing: 2px; }
+        .filter-box { background: white; padding: 25px; border-radius: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; box-shadow: 0 2px 15px rgba(0,0,0,0.05); margin-bottom: 30px; position: sticky; top: 10px; z-index: 1000; border-top: 5px solid var(--primary); }
+        .filter-group label { display: block; font-weight: bold; margin-bottom: 8px; color: #555; font-size: 0.9rem; }
+        select, input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; background: #fafafa; transition: 0.3s; }
+        select:focus, input:focus { border-color: var(--primary); outline: none; background: #fff; }
+        .results-meta { font-weight: bold; margin-bottom: 15px; color: #666; font-size: 1.1rem; padding-left: 5px; }
+        .tire-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+        .tire-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-bottom: 4px solid #eee; transition: 0.3s; display: flex; flex-direction: column; }
+        .tire-card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+        .brand-name { color: var(--primary); font-weight: 800; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px; }
+        .model-name { font-size: 1.4rem; font-weight: bold; margin-bottom: 10px; color: var(--secondary); }
+        .badges { margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 5px; }
+        .badge { padding: 4px 10px; border-radius: 5px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+        .badge-pos { background: #333; color: white; }
+        .badge-ride { background: #e3f2fd; color: #1976d2; }
+        .badge-terr { background: #f1f8e9; color: #388e3c; }
+        .description { font-size: 0.95rem; color: #555; border-top: 1px solid #eee; padding-top: 10px; margin-top: auto; }
+        .update-tag { background: #fff3e0; color: #e65100; border: 1px solid #ffb74d; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 8px; }
+        @media (max-width: 600px) { h1 { font-size: 1.8rem; } .filter-box { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Dirt Bike Tire Finder</h1>
+        <p>Search Tires Across All Major Brands</p>
+    </header>
+
+    <div class="filter-box">
+        <div class="filter-group">
+            <label>Riding Type</label>
+            <select id="rideType" onchange="filterData()">
+                <option value="all">All Riding Styles</option>
+                <option value="Motocross">Motocross</option>
+                <option value="Enduro">Enduro</option>
+                <option value="Hard Enduro">Hard Enduro</option>
+                <option value="Dual-Sport">Dual-Sport</option>
+                <option value="Trail">Trail Riding</option>
+                <option value="Desert">Desert Racing</option>
+                <option value="Adventure">Adventure</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Terrain</label>
+            <select id="terrainType" onchange="filterData()">
+                <option value="all">All Terrains</option>
+                <option value="Soft">Soft / Sand / Mud</option>
+                <option value="Intermediate">Intermediate / Mixed</option>
+                <option value="Hard">Hard / Rocky</option>
+                <option value="Technical">Technical / Extreme</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Search Models</label>
+            <input type="text" id="searchText" onkeyup="filterData()" placeholder="e.g. Dunlop MX34...">
+        </div>
+    </div>
+
+    <div id="recommendationSection" style="display:none; margin-bottom: 40px;">
+        <h2 style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px;">Top 3 Recommendations</h2>
+        <div id="topPicks" class="tire-grid"></div>
+    </div>
+
+    <div id="resultCount" class="results-meta"></div>
+    <div id="tireGrid" class="tire-grid"></div>
 </div>
 
-<div id="resultCount" class="results-meta"></div>
-<div id="tireGrid" class="tire-grid"></div>
-
 <script>
-// (Keep your 'const tires = [...]' list here - just ensure the very end of the list is clean)
+const tires = [
+    { b: "Dunlop", m: "Geomax MX14", p: "Rear", r: "Motocross", t: "Soft", d: "2026 Update: Advanced sand/mud tire with 18% taller blocks.", u: true },
+    { b: "Dunlop", m: "Geomax MX34", p: "Rear", r: "Motocross", t: "Intermediate", d: "2026 Update: PCBT (Block-in-Block) tech.", u: true },
+    { b: "Bridgestone", m: "Battlecross X31", p: "Rear", r: "Motocross", t: "Intermediate", d: "2026 Standard: Improved cooling fin technology.", u: true },
+    { b: "IRC", m: "VE-33S Gekkota", p: "Rear", r: "Hard Enduro", t: "Technical", d: "Hybrid Gummy for hard enduro/rocks." },
+    { b: "Dunlop", m: "Geomax AT81 EX", p: "Rear", r: "Hard Enduro", t: "Technical", d: "Gummy enduro tire for extreme conditions." },
+    { b: "Maxxis", m: "Maxxcross SM", p: "Rear", r: "Motocross", t: "Soft", d: "Soft terrain tire with sand focus." },
+    { b: "Pirelli", m: "Scorpion MX Soft", p: "Rear", r: "Motocross", t: "Soft", d: "Pure-bred competition tire for mud and sand." },
+    { b: "Michelin", m: "Starcross 6 MS", p: "Rear", r: "Motocross", t: "Soft", d: "Motocross tire for soft and intermediate terrain." },
+    { b: "Kenda", m: "Washougal III", p: "Rear", r: "Motocross", t: "Intermediate", d: "2026 Addition: Dual-compound for sharp cornering.", u: true },
+    { b: "Dunlop", m: "Geomax MX53", p: "Rear", r: "Motocross", t: "Hard", d: "Intermediate-to-hard terrain motocross tire." }
+    // Add more of your original list here...
+];
 
 function filterData() {
     const ride = document.getElementById('rideType').value;
@@ -19,7 +102,6 @@ function filterData() {
     const recSection = document.getElementById('recommendationSection');
     const count = document.getElementById('resultCount');
 
-    // 1. Filter the full list
     const filtered = tires.filter(t => {
         const matchRide = ride === 'all' || t.r === ride;
         const matchTerr = terrain === 'all' || t.t === terrain;
@@ -27,8 +109,6 @@ function filterData() {
         return matchRide && matchTerr && matchSearch;
     });
 
-    // 2. Logic for Recommendation Section
-    // Only show "Top Picks" if the user has actually selected a specific style or terrain
     if ((ride !== 'all' || terrain !== 'all') && filtered.length > 0) {
         recSection.style.display = 'block';
         const top3 = filtered.slice(0, 3);
@@ -37,31 +117,31 @@ function filterData() {
         recSection.style.display = 'none';
     }
 
-    // 3. Show the rest of the results
     count.innerText = `${filtered.length} Total Models Found`;
     grid.innerHTML = filtered.map(t => createCardHTML(t, false)).join('');
 }
 
-// Helper function to build the card so we don't repeat code
 function createCardHTML(t, isRecommended) {
-    const borderStyle = isRecommended ? 'border: 2px solid var(--primary);' : '';
+    const borderStyle = isRecommended ? 'border: 3px solid var(--primary);' : '';
     return `
         <div class="tire-card" style="${borderStyle}">
             <div class="brand-name">
                 ${t.b} ${t.u ? '<span class="update-tag">NEW 2026</span>' : ''}
-                ${isRecommended ? '<span style="background:var(--primary); color:white; padding:2px 6px; border-radius:4px; font-size:0.7rem; margin-left:5px;">BEST MATCH</span>' : ''}
+                ${isRecommended ? '<span style="background:var(--primary); color:white; padding:2px 6px; border-radius:4px; font-size:0.7rem; margin-left:5px;">TOP PICK</span>' : ''}
             </div>
             <div class="model-name">${t.m}</div>
             <div class="badges">
                 <span class="badge badge-pos">${t.p}</span>
-                <span class="badge badge-ride">${t.r || 'Off-Road'}</span>
-                <span class="badge badge-terr">${t.t || 'Mixed'}</span>
+                <span class="badge badge-ride">${t.r}</span>
+                <span class="badge badge-terr">${t.t}</span>
             </div>
             <div class="description">${t.d}</div>
         </div>
     `;
 }
 
-// Initial Run
 filterData();
 </script>
+
+</body>
+</html>
